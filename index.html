@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>DentaRecord — Patient Records</title>
+  <meta name="description" content="Simple and elegant dental patient record management with photo uploads and PDF export.">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="DentaRecord">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦷</text></svg>">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+  <div id="app">
+    <!-- Sidebar Navigation -->
+    <aside id="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <span class="logo-icon">🦷</span>
+          <span class="logo-text">DentaRecord</span>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="#" class="nav-link active" data-view="dashboard" id="nav-dashboard">
+          <span class="nav-icon">📊</span>
+          <span class="nav-label">Dashboard</span>
+        </a>
+        <a href="#" class="nav-link" data-view="new-record" id="nav-new-record">
+          <span class="nav-icon">➕</span>
+          <span class="nav-label">New Record</span>
+        </a>
+        <a href="#" class="nav-link" data-view="records" id="nav-records">
+          <span class="nav-icon">📋</span>
+          <span class="nav-label">All Records</span>
+        </a>
+        <a href="#" class="nav-link" data-view="pdfs" id="nav-pdfs">
+          <span class="nav-icon">📄</span>
+          <span class="nav-label">My PDFs</span>
+        </a>
+        <a href="#" class="nav-link" data-view="backup" id="nav-backup">
+          <span class="nav-icon">🔄</span>
+          <span class="nav-label">Backup</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-footer-text">
+          <span class="footer-icon">🔒</span>
+          <span>All data stays private on this device</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Mobile Top Bar -->
+    <header id="mobile-header">
+      <button id="mobile-menu-btn" class="icon-btn" aria-label="Toggle menu">☰</button>
+      <div class="mobile-logo">
+        <span>🦷</span>
+        <span>DentaRecord</span>
+      </div>
+      <div style="width:40px"></div>
+    </header>
+
+    <!-- Mobile Overlay -->
+    <div id="sidebar-overlay"></div>
+
+    <!-- Main Content Area -->
+    <main id="main-content">
+
+      <!-- ==================== DASHBOARD VIEW ==================== -->
+      <section id="dashboard-view" class="view active">
+        <div class="view-header">
+          <div>
+            <h1 id="dashboard-heading">Dashboard</h1>
+            <p class="view-subtitle" id="dashboard-date"></p>
+          </div>
+          <button class="btn btn-primary" id="dashboard-new-btn">
+            <span>➕</span> New Record
+          </button>
+        </div>
+
+        <div class="stats-grid" id="stats-container">
+          <div class="stat-card stat-card-primary">
+            <div class="stat-icon">👥</div>
+            <div class="stat-info">
+              <span class="stat-value" id="stat-total">0</span>
+              <span class="stat-label">Total Patients</span>
+            </div>
+          </div>
+          <div class="stat-card stat-card-success">
+            <div class="stat-icon">📅</div>
+            <div class="stat-info">
+              <span class="stat-value" id="stat-month">0</span>
+              <span class="stat-label">This Month</span>
+            </div>
+          </div>
+          <div class="stat-card stat-card-warning">
+            <div class="stat-icon">📄</div>
+            <div class="stat-info">
+              <span class="stat-value" id="stat-pdfs">0</span>
+              <span class="stat-label">Saved PDFs</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-header">
+          <h2>Recent Records</h2>
+        </div>
+        <div id="recent-records" class="records-grid"></div>
+        <div id="dashboard-empty" class="empty-state" style="display:none;">
+          <div class="empty-icon">🦷</div>
+          <h3>No records yet</h3>
+          <p>Start by adding your first patient record</p>
+          <button class="btn btn-primary" id="empty-new-btn">➕ Add First Record</button>
+        </div>
+      </section>
+
+      <!-- ==================== NEW RECORD VIEW ==================== -->
+      <section id="new-record-view" class="view">
+        <div class="view-header">
+          <div>
+            <h1>New Patient Record</h1>
+            <p class="view-subtitle">Fill in the patient and treatment details</p>
+          </div>
+        </div>
+
+        <form id="patient-form" novalidate>
+          <div class="form-section">
+            <h3 class="form-section-title">
+              <span>👤</span> Patient Information
+            </h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="patient-name">Full Name <span class="required">*</span></label>
+                <input type="text" id="patient-name" name="patientName" placeholder="e.g. Rahul Sharma" required>
+                <span class="form-error" id="error-name"></span>
+              </div>
+              <div class="form-group">
+                <label for="patient-age">Age <span class="required">*</span></label>
+                <input type="number" id="patient-age" name="age" placeholder="e.g. 32" min="1" max="120" required>
+                <span class="form-error" id="error-age"></span>
+              </div>
+              <div class="form-group">
+                <label for="patient-gender">Gender <span class="required">*</span></label>
+                <select id="patient-gender" name="gender" required>
+                  <option value="" disabled selected>Select gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+                <span class="form-error" id="error-gender"></span>
+              </div>
+              <div class="form-group">
+                <label for="patient-phone">Phone Number <span class="required">*</span></label>
+                <input type="tel" id="patient-phone" name="phone" placeholder="e.g. 9876543210" required>
+                <span class="form-error" id="error-phone"></span>
+              </div>
+              <div class="form-group">
+                <label for="patient-email">Email <span class="text-muted">(optional)</span></label>
+                <input type="email" id="patient-email" name="email" placeholder="e.g. patient@email.com">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3 class="form-section-title">
+              <span>🦷</span> Treatment Details
+            </h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="treatment-type">Treatment Type <span class="required">*</span></label>
+                <input type="text" id="treatment-type" name="treatmentType" list="treatment-options" placeholder="Select or type treatment" required autocomplete="off">
+                <datalist id="treatment-options">
+                  <option value="General Checkup"></option>
+                  <option value="Cleaning & Polishing"></option>
+                  <option value="Filling (Composite)"></option>
+                  <option value="Filling (Amalgam)"></option>
+                  <option value="Root Canal Treatment"></option>
+                  <option value="Crown"></option>
+                  <option value="Bridge"></option>
+                  <option value="Tooth Extraction"></option>
+                  <option value="Dental Implant"></option>
+                  <option value="Teeth Whitening"></option>
+                  <option value="Orthodontics (Braces)"></option>
+                  <option value="Dentures"></option>
+                  <option value="Gum Treatment"></option>
+                  <option value="Cosmetic Dentistry"></option>
+                  <option value="Wisdom Tooth Removal"></option>
+                  <option value="Veneer"></option>
+                </datalist>
+                <span class="form-error" id="error-treatment"></span>
+              </div>
+              <div class="form-group">
+                <label for="treatment-date">Treatment Date <span class="required">*</span></label>
+                <input type="date" id="treatment-date" name="treatmentDate" required>
+                <span class="form-error" id="error-date"></span>
+              </div>
+              <div class="form-group">
+                <label for="tooth-area">Tooth / Area <span class="text-muted">(optional)</span></label>
+                <input type="text" id="tooth-area" name="toothArea" placeholder="e.g. Upper Right Molar #16">
+              </div>
+              <div class="form-group full-width">
+                <label for="chief-complaint">Chief Complaint <span class="text-muted">(optional)</span></label>
+                <input type="text" id="chief-complaint" name="chiefComplaint" placeholder="e.g. Pain in lower left jaw since 3 days">
+              </div>
+              <div class="form-group full-width">
+                <label for="treatment-notes">Treatment Notes / Description</label>
+                <textarea id="treatment-notes" name="treatmentNotes" rows="4" placeholder="Describe the treatment performed, materials used, follow-up instructions, etc."></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3 class="form-section-title">
+              <span>📸</span> Photos
+              <span class="photo-counter" id="photo-count">0 / 10</span>
+            </h3>
+            <div class="photo-upload-area" id="photo-upload-area">
+              <input type="file" id="photo-input" accept="image/*" multiple hidden>
+              <div class="upload-content">
+                <div class="upload-icon">📷</div>
+                <p class="upload-text">Drag & drop photos here or <span class="upload-link">click to browse</span></p>
+                <p class="upload-hint">Up to 10 photos · JPG, PNG, WEBP</p>
+              </div>
+            </div>
+            <div class="photo-previews" id="photo-previews"></div>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-ghost" id="form-reset-btn">Clear Form</button>
+            <button type="submit" class="btn btn-primary btn-lg" id="form-submit-btn">
+              <span class="btn-icon">💾</span> Save Record
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- ==================== ALL RECORDS VIEW ==================== -->
+      <section id="records-view" class="view">
+        <div class="view-header">
+          <div>
+            <h1>All Records</h1>
+            <p class="view-subtitle" id="records-count-text">Loading...</p>
+          </div>
+          <div class="view-actions">
+            <div class="search-box">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="search-input" placeholder="Search by name or treatment...">
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-bar">
+          <button class="filter-chip active" data-filter="all">All</button>
+          <button class="filter-chip" data-filter="General Checkup">Checkup</button>
+          <button class="filter-chip" data-filter="Cleaning & Polishing">Cleaning</button>
+          <button class="filter-chip" data-filter="Root Canal Treatment">Root Canal</button>
+          <button class="filter-chip" data-filter="Crown">Crown</button>
+          <button class="filter-chip" data-filter="Tooth Extraction">Extraction</button>
+          <button class="filter-chip" data-filter="Filling">Filling</button>
+        </div>
+
+        <div id="records-list" class="records-grid"></div>
+        <div id="records-empty" class="empty-state" style="display:none;">
+          <div class="empty-icon">📋</div>
+          <h3>No records found</h3>
+          <p>Try a different search or add a new record</p>
+        </div>
+      </section>
+
+      <!-- ==================== RECORD DETAIL VIEW ==================== -->
+      <section id="detail-view" class="view">
+        <div class="view-header">
+          <button class="btn btn-ghost" id="detail-back-btn">← Back</button>
+          <div class="view-actions">
+            <button class="btn btn-primary" id="detail-pdf-btn">
+              <span>📄</span> Generate PDF
+            </button>
+            <button class="btn btn-danger-outline" id="detail-delete-btn">
+              <span>🗑️</span> Delete
+            </button>
+          </div>
+        </div>
+        <div id="detail-content"></div>
+      </section>
+
+      <!-- ==================== MY PDFs VIEW ==================== -->
+      <section id="pdfs-view" class="view">
+        <div class="view-header">
+          <div>
+            <h1>My PDFs</h1>
+            <p class="view-subtitle" id="pdfs-count-text">Loading...</p>
+          </div>
+          <div class="view-actions">
+            <div class="search-box">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="pdf-search-input" placeholder="Search PDFs...">
+            </div>
+          </div>
+        </div>
+
+        <div id="pdfs-list" class="pdfs-list"></div>
+        <div id="pdfs-empty" class="empty-state" style="display:none;">
+          <div class="empty-icon">📄</div>
+          <h3>No PDFs saved yet</h3>
+          <p>PDFs are automatically created when you save a patient record.<br>You can also generate them from any record's detail page.</p>
+          <button class="btn btn-primary" id="pdfs-new-btn">➕ Add a Record</button>
+        </div>
+      </section>
+
+      <!-- ==================== BACKUP & RESTORE VIEW ==================== -->
+      <section id="backup-view" class="view">
+        <div class="view-header">
+          <div>
+            <h1>Backup & Restore</h1>
+            <p class="view-subtitle">Protect your data from accidental loss</p>
+          </div>
+        </div>
+
+        <!-- Manual Backup Section -->
+        <div class="backup-section">
+          <div class="backup-section-header">
+            <span class="backup-section-icon">💾</span>
+            <div>
+              <h2 class="backup-section-title">Manual Backup</h2>
+              <p class="backup-section-desc">Download or restore your data as a file</p>
+            </div>
+          </div>
+
+          <div class="backup-cards-grid">
+            <div class="backup-card backup-card-export">
+              <div class="backup-card-icon">📤</div>
+              <h3>Export Data</h3>
+              <p>Download all records, photos & PDFs as a single backup file</p>
+              <div class="backup-card-stats" id="export-stats">
+                <span id="export-record-count">0 records</span>
+                <span id="export-pdf-count">0 PDFs</span>
+              </div>
+              <button class="btn btn-primary btn-lg" id="export-btn">
+                <span class="btn-icon">📥</span> Download Backup
+              </button>
+              <div class="backup-last-info" id="last-export-info"></div>
+            </div>
+
+            <div class="backup-card backup-card-import">
+              <div class="backup-card-icon">📥</div>
+              <h3>Restore Data</h3>
+              <p>Upload a previously saved backup file to restore your records</p>
+              <input type="file" id="import-file-input" accept=".json" hidden>
+              <button class="btn btn-primary btn-lg" id="import-btn">
+                <span class="btn-icon">📂</span> Choose Backup File
+              </button>
+              <div class="backup-import-note">
+                <span>⚠️</span> This will add to your existing data. Duplicates are skipped.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Google Drive Section -->
+        <div class="backup-section">
+          <div class="backup-section-header">
+            <span class="backup-section-icon">☁️</span>
+            <div>
+              <h2 class="backup-section-title">Google Drive Backup</h2>
+              <p class="backup-section-desc">Automatically backup to your Google Drive</p>
+            </div>
+          </div>
+
+          <div class="gdrive-card" id="gdrive-card">
+            <!-- Not connected state -->
+            <div id="gdrive-disconnected">
+              <div class="gdrive-status-icon">🔗</div>
+              <h3>Connect Google Drive</h3>
+              <p>Sign in with Google to enable automatic cloud backups. Your data is saved in a private app folder on your Drive.</p>
+              <button class="btn btn-google btn-lg" id="gdrive-connect-btn">
+                <svg class="google-icon" viewBox="0 0 24 24" width="20" height="20"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                Sign in with Google
+              </button>
+              <p class="gdrive-privacy">🔒 We can only access our own app folder — not your other files</p>
+            </div>
+
+            <!-- Connected state -->
+            <div id="gdrive-connected" style="display:none;">
+              <div class="gdrive-connected-header">
+                <div class="gdrive-status-badge connected">
+                  <span>☁️</span> Connected to Google Drive
+                </div>
+                <button class="btn btn-ghost btn-sm" id="gdrive-disconnect-btn">Disconnect</button>
+              </div>
+              <div class="gdrive-info-grid">
+                <div class="gdrive-info-item">
+                  <span class="gdrive-info-label">Account</span>
+                  <span class="gdrive-info-value" id="gdrive-email">—</span>
+                </div>
+                <div class="gdrive-info-item">
+                  <span class="gdrive-info-label">Last Auto-Backup</span>
+                  <span class="gdrive-info-value" id="gdrive-last-backup">Never</span>
+                </div>
+                <div class="gdrive-info-item">
+                  <span class="gdrive-info-label">Status</span>
+                  <span class="gdrive-info-value gdrive-status-text" id="gdrive-status">Ready</span>
+                </div>
+              </div>
+              <div class="gdrive-actions">
+                <button class="btn btn-primary" id="gdrive-backup-now-btn">
+                  <span class="btn-icon">☁️</span> Backup Now
+                </button>
+                <button class="btn btn-ghost" id="gdrive-restore-btn">
+                  <span class="btn-icon">📥</span> Restore from Drive
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
+
+  <!-- Photo Lightbox Modal -->
+  <div id="lightbox" class="modal-overlay" style="display:none;">
+    <button class="lightbox-close" id="lightbox-close" aria-label="Close">✕</button>
+    <button class="lightbox-nav lightbox-prev" id="lightbox-prev" aria-label="Previous">‹</button>
+    <button class="lightbox-nav lightbox-next" id="lightbox-next" aria-label="Next">›</button>
+    <img id="lightbox-img" src="" alt="Photo preview">
+    <div class="lightbox-counter" id="lightbox-counter"></div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div id="delete-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-card">
+      <div class="modal-icon">⚠️</div>
+      <h3>Delete Record?</h3>
+      <p>This action cannot be undone. The record and all associated photos will be permanently deleted.</p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="delete-cancel-btn">Cancel</button>
+        <button class="btn btn-danger" id="delete-confirm-btn">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rename PDF Modal -->
+  <div id="rename-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-card">
+      <div class="modal-icon">✏️</div>
+      <h3>Rename PDF</h3>
+      <div class="rename-input-group">
+        <input type="text" id="rename-input" placeholder="Enter new name" class="rename-input">
+        <span class="rename-ext">.pdf</span>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="rename-cancel-btn">Cancel</button>
+        <button class="btn btn-primary" id="rename-save-btn">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete PDF Confirmation Modal -->
+  <div id="delete-pdf-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-card">
+      <div class="modal-icon">🗑️</div>
+      <h3>Delete PDF?</h3>
+      <p>This PDF will be permanently removed. The patient record will not be affected.</p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="delete-pdf-cancel-btn">Cancel</button>
+        <button class="btn btn-danger" id="delete-pdf-confirm-btn">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import Confirmation Modal -->
+  <div id="import-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-card">
+      <div class="modal-icon">📥</div>
+      <h3>Restore Backup?</h3>
+      <div id="import-summary" class="import-summary"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="import-cancel-btn">Cancel</button>
+        <button class="btn btn-primary" id="import-confirm-btn">Restore Data</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Google Drive Disconnect Modal -->
+  <div id="gdrive-disconnect-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-card">
+      <div class="modal-icon">☁️</div>
+      <h3>Disconnect Google Drive?</h3>
+      <p>Auto-backups will stop. Your existing backup on Google Drive will not be deleted.</p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="gdrive-disconnect-cancel-btn">Cancel</button>
+        <button class="btn btn-danger" id="gdrive-disconnect-confirm-btn">Disconnect</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- iOS Install Banner -->
+  <div id="ios-install-banner" class="ios-banner" style="display:none;">
+    <div class="ios-banner-content">
+      <div class="ios-banner-icon">🦷</div>
+      <div class="ios-banner-text">
+        <strong>Install DentaRecord</strong>
+        <p>Tap <strong>Share</strong> <span class="ios-share-icon">⬆</span> then <strong>"Add to Home Screen"</strong></p>
+      </div>
+      <button id="dismiss-install-banner" class="ios-banner-close" aria-label="Dismiss">✕</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
