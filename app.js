@@ -497,6 +497,20 @@ function initForm() {
     handlePhotoFiles(e.dataTransfer.files);
   });
 
+  // Load saved send-to email
+  const savedEmail = localStorage.getItem('sendToEmail');
+  const sendToInput = document.getElementById('send-to-email');
+  if (savedEmail) {
+    sendToInput.value = savedEmail;
+  }
+  // Save email when changed
+  sendToInput.addEventListener('change', () => {
+    const email = sendToInput.value.trim();
+    if (email) {
+      localStorage.setItem('sendToEmail', email);
+    }
+  });
+
   setDefaultDate();
 }
 
@@ -620,9 +634,33 @@ async function handleFormSubmit(e) {
 
     // Auto-generate and save PDF
     showToast('Saving record & generating PDF...', 'info');
-    await generateAndSavePDF(record);
+    const doc = buildPDF(record);
+    const pdfBlob = doc.output('blob');
+    const filename = generatePdfFilename(record);
+
+    // Save PDF to IndexedDB
+    const pdfRecord = {
+      name: filename,
+      patientName: record.patientName,
+      treatmentType: record.treatmentType,
+      treatmentDate: record.treatmentDate,
+      recordId: record.id,
+      pdfBlob: pdfBlob,
+      size: pdfBlob.size,
+      createdAt: Date.now()
+    };
+    await addPdf(pdfRecord);
 
     showToast('Record & PDF saved! ✅', 'success');
+
+    // Send PDF via email
+    const sendToEmail = document.getElementById('send-to-email').value.trim();
+    if (sendToEmail) {
+      // Save the email for next time
+      localStorage.setItem('sendToEmail', sendToEmail);
+      await sendPdfViaEmail(pdfBlob, filename, record, sendToEmail);
+    }
+
     resetForm();
 
     // Auto-backup to Google Drive if connected
@@ -634,8 +672,41 @@ async function handleFormSubmit(e) {
     showToast('Failed to save record', 'error');
   } finally {
     submitBtn.disabled = false;
-    submitBtn.innerHTML = '<span class="btn-icon">💾</span> Save Record';
+    submitBtn.innerHTML = '<span class="btn-icon">💾</span> Save & Send';
   }
+}
+
+async function sendPdfViaEmail(pdfBlob, filename, record, recipientEmail) {
+  const pdfFile = new File([pdfBlob], `${filename}.pdf`, { type: 'application/pdf' });
+  const subject = `Patient Record: ${record.patientName} - ${record.treatmentType}`;
+  const bodyText =
+    `Patient Record for ${record.patientName}\n` +
+    `Diagnosis: ${record.treatmentType}\n` +
+    `Date: ${formatDate(record.treatmentDate)}\n\n` +
+    `Please find the PDF attached.\n\n- Sent via Nia's Lab`;
+
+  // Try Web Share API first (works great on iPhone with file sharing)
+  if (navigator.share && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+    try {
+      await navigator.share({
+        title: subject,
+        text: bodyText,
+        files: [pdfFile]
+      });
+      showToast('PDF shared via email! 📧', 'success');
+      return;
+    } catch (err) {
+      if (err.name === 'AbortError') return; // User cancelled
+      console.log('Share API failed, falling back:', err);
+    }
+  }
+
+  // Fallback: download the PDF and open mailto with recipient pre-filled
+  downloadBlob(pdfBlob, `${filename}.pdf`);
+  const encodedSubject = encodeURIComponent(subject);
+  const encodedBody = encodeURIComponent(bodyText);
+  window.open(`mailto:${recipientEmail}?subject=${encodedSubject}&body=${encodedBody}`, '_self');
+  showToast('PDF downloaded — attach it to the email 📧', 'info');
 }
 
 function resetForm() {

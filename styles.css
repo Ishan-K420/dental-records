@@ -858,6 +858,42 @@ body {
   .photo-remove { opacity: 1; }
 }
 
+/* ==================== EMAIL SEND SECTION ==================== */
+.email-send-section {
+  border: 1.5px solid var(--primary);
+  background: linear-gradient(135deg, var(--primary-bg), var(--surface));
+  position: relative;
+  overflow: hidden;
+}
+
+.email-send-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary), var(--primary-light));
+}
+
+.email-send-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.email-send-group {
+  flex: 1;
+}
+
+.email-remember-hint {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+  font-weight: 500;
+}
+
 /* ==================== FORM ACTIONS ==================== */
 .form-actions {
   display: flex;

@@ -232,10 +232,23 @@
             <div class="photo-previews" id="photo-previews"></div>
           </div>
 
+          <div class="form-section email-send-section">
+            <h3 class="form-section-title">
+              <span>📧</span> Send PDF via Email
+            </h3>
+            <div class="email-send-row">
+              <div class="form-group email-send-group">
+                <label for="send-to-email">Recipient Email</label>
+                <input type="email" id="send-to-email" name="sendToEmail" placeholder="e.g. doctor@clinic.com">
+                <span class="email-remember-hint">📌 Email is remembered for next time</span>
+              </div>
+            </div>
+          </div>
+
           <div class="form-actions">
             <button type="button" class="btn btn-ghost" id="form-reset-btn">Clear Form</button>
             <button type="submit" class="btn btn-primary btn-lg" id="form-submit-btn">
-              <span class="btn-icon">💾</span> Save Record
+              <span class="btn-icon">💾</span> Save & Send
             </button>
           </div>
         </form>
