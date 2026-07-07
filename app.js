@@ -4,8 +4,19 @@ const DB_VERSION = 2;
 const RECORDS_STORE = 'records';
 const PDFS_STORE = 'pdfs';
 const MAX_PHOTOS = 10;
-const MAX_IMAGE_WIDTH = 1400;
-const IMAGE_QUALITY = 0.82;
+// Reduce image size on mobile for faster processing
+const IS_MOBILE = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+const MAX_IMAGE_WIDTH = IS_MOBILE ? 1000 : 1400;
+const IMAGE_QUALITY = IS_MOBILE ? 0.72 : 0.82;
+
+// Debounce utility for search inputs
+function debounce(fn, delay) {
+  let timer;
+  return function(...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn.apply(this, args), delay);
+  };
+}
 
 // *** IMPORTANT: Replace with your own Google Cloud Client ID ***
 // Get one free at: https://console.cloud.google.com
@@ -26,6 +37,12 @@ let renamingPdfId = null;
 let deletingPdfId = null;
 let pendingImportData = null;
 let gdriveAccessToken = null;
+
+// Lazy rendering state
+let renderedRecordsCount = 20;
+let activeFilteredRecords = [];
+let renderedPdfsCount = 20;
+let activeFilteredPdfs = [];
 
 // ==================== DATABASE ====================
 function openDatabase() {
@@ -215,7 +232,10 @@ function navigate(viewName) {
   if (targetView) targetView.classList.add('active');
 
   closeMobileSidebar();
-  document.getElementById('main-content').scrollTo(0, 0);
+  // Use rAF for scroll to avoid forced reflow
+  requestAnimationFrame(() => {
+    document.getElementById('main-content').scrollTo({ top: 0, behavior: 'instant' });
+  });
 
   switch (viewName) {
     case 'dashboard': loadDashboard(); break;
@@ -301,7 +321,7 @@ async function loadRecords() {
   }
 }
 
-function renderRecordsList() {
+function renderRecordsList(append = false) {
   const searchTerm = document.getElementById('search-input').value.toLowerCase().trim();
   let filtered = allRecords;
 
@@ -319,6 +339,12 @@ function renderRecordsList() {
     );
   }
 
+  activeFilteredRecords = filtered;
+
+  if (!append) {
+    renderedRecordsCount = 20;
+  }
+
   document.getElementById('records-count-text').textContent =
     `${filtered.length} record${filtered.length !== 1 ? 's' : ''} found`;
 
@@ -331,7 +357,8 @@ function renderRecordsList() {
   } else {
     listContainer.style.display = 'grid';
     emptyState.style.display = 'none';
-    listContainer.innerHTML = filtered.map(r => renderRecordCard(r)).join('');
+    const visibleRecords = filtered.slice(0, renderedRecordsCount);
+    listContainer.innerHTML = visibleRecords.map(r => renderRecordCard(r)).join('');
     attachRecordCardListeners(listContainer);
   }
 }
@@ -728,10 +755,10 @@ function buildPDF(record) {
   const contentWidth = pageWidth - margin * 2;
   let y = margin;
 
-  const primaryColor = [8, 145, 178];
-  const textColor = [15, 23, 42];
-  const mutedColor = [100, 116, 139];
-  const borderColor = [226, 232, 240];
+  const primaryColor = [79, 110, 247];
+  const textColor = [15, 23, 41];
+  const mutedColor = [136, 150, 176];
+  const borderColor = [227, 232, 239];
 
   // Header
   doc.setFillColor(...primaryColor);
@@ -912,7 +939,7 @@ async function loadPdfs() {
   }
 }
 
-function renderPdfsList() {
+function renderPdfsList(append = false) {
   const searchTerm = (document.getElementById('pdf-search-input')?.value || '').toLowerCase().trim();
   let filtered = allPdfs;
 
@@ -922,6 +949,12 @@ function renderPdfsList() {
       p.patientName.toLowerCase().includes(searchTerm) ||
       p.treatmentType.toLowerCase().includes(searchTerm)
     );
+  }
+
+  activeFilteredPdfs = filtered;
+
+  if (!append) {
+    renderedPdfsCount = 20;
   }
 
   document.getElementById('pdfs-count-text').textContent =
@@ -936,7 +969,8 @@ function renderPdfsList() {
   } else {
     listContainer.style.display = 'flex';
     emptyState.style.display = 'none';
-    listContainer.innerHTML = filtered.map(p => renderPdfCard(p)).join('');
+    const visiblePdfs = filtered.slice(0, renderedPdfsCount);
+    listContainer.innerHTML = visiblePdfs.map(p => renderPdfCard(p)).join('');
     attachPdfCardListeners(listContainer);
   }
 }
@@ -1825,11 +1859,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('gdrive-backup-now-btn').addEventListener('click', backupToGoogleDrive);
   document.getElementById('gdrive-restore-btn').addEventListener('click', restoreFromGoogleDrive);
 
-  // Search records
-  document.getElementById('search-input').addEventListener('input', renderRecordsList);
+  // Debounced search for smooth typing on iOS
+  document.getElementById('search-input').addEventListener('input', debounce(renderRecordsList, 150));
 
-  // Search PDFs
-  document.getElementById('pdf-search-input').addEventListener('input', renderPdfsList);
+  // Debounced PDF search
+  document.getElementById('pdf-search-input').addEventListener('input', debounce(renderPdfsList, 150));
 
   // Filter chips
   document.querySelectorAll('.filter-chip').forEach(chip => {
@@ -1867,12 +1901,39 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // Mobile menu
+  // Mobile menu — cached references
+  const sidebarEl = document.getElementById('sidebar');
+  const overlayEl = document.getElementById('sidebar-overlay');
   document.getElementById('mobile-menu-btn').addEventListener('click', () => {
-    document.getElementById('sidebar').classList.toggle('open');
-    document.getElementById('sidebar-overlay').classList.toggle('open');
+    sidebarEl.classList.toggle('open');
+    overlayEl.classList.toggle('open');
   });
-  document.getElementById('sidebar-overlay').addEventListener('click', closeMobileSidebar);
+  overlayEl.addEventListener('click', closeMobileSidebar, { passive: true });
+
+  // Passive scroll listener for lazy loading list items on scroll
+  const mainContentEl = document.getElementById('main-content');
+  mainContentEl.addEventListener('scroll', () => {
+    // Lazy load records
+    const recordsView = document.getElementById('records-view');
+    if (recordsView && recordsView.classList.contains('active')) {
+      if (mainContentEl.scrollTop + mainContentEl.clientHeight >= mainContentEl.scrollHeight - 250) {
+        if (renderedRecordsCount < activeFilteredRecords.length) {
+          renderedRecordsCount += 20;
+          renderRecordsList(true);
+        }
+      }
+    }
+    // Lazy load PDFs
+    const pdfsView = document.getElementById('pdfs-view');
+    if (pdfsView && pdfsView.classList.contains('active')) {
+      if (mainContentEl.scrollTop + mainContentEl.clientHeight >= mainContentEl.scrollHeight - 250) {
+        if (renderedPdfsCount < activeFilteredPdfs.length) {
+          renderedPdfsCount += 20;
+          renderPdfsList(true);
+        }
+      }
+    }
+  }, { passive: true });
 
   // iOS install banner
   document.getElementById('dismiss-install-banner').addEventListener('click', () => {
