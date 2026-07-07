@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dentarecord-v1';
+const CACHE_NAME = 'niaslab-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -27,40 +27,24 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch - cache first, network fallback
+// Fetch - network first, cache fallback (prevents stale content issues on iOS)
 self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
-    caches.match(event.request)
-      .then(cachedResponse => {
-        if (cachedResponse) {
-          // Return cached version but also update cache in background
-          const fetchPromise = fetch(event.request)
-            .then(networkResponse => {
-              if (networkResponse && networkResponse.status === 200) {
-                const responseClone = networkResponse.clone();
-                caches.open(CACHE_NAME)
-                  .then(cache => cache.put(event.request, responseClone));
-              }
-              return networkResponse;
-            })
-            .catch(() => {}); // Ignore network errors for background update
-
-          return cachedResponse;
+    fetch(event.request)
+      .then(networkResponse => {
+        if (networkResponse && networkResponse.status === 200) {
+          const responseClone = networkResponse.clone();
+          caches.open(CACHE_NAME)
+            .then(cache => cache.put(event.request, responseClone));
         }
-
-        // Not in cache - try network and cache the response
-        return fetch(event.request)
-          .then(networkResponse => {
-            if (networkResponse && networkResponse.status === 200) {
-              const responseClone = networkResponse.clone();
-              caches.open(CACHE_NAME)
-                .then(cache => cache.put(event.request, responseClone));
-            }
-            return networkResponse;
-          });
+        return networkResponse;
+      })
+      .catch(() => {
+        // Network failed - fall back to cache
+        return caches.match(event.request);
       })
   );
 });

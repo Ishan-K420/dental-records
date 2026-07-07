@@ -77,6 +77,8 @@ body {
   /* iOS safe area */
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
+  /* iOS performance */
+  -webkit-tap-highlight-color: transparent;
 }
 
 ::-webkit-scrollbar { width: 6px; }
@@ -100,6 +102,8 @@ body {
   flex-direction: column;
   z-index: 100;
   transition: transform var(--transition-smooth);
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .sidebar-header {
@@ -123,6 +127,23 @@ body {
   background: linear-gradient(135deg, var(--primary), var(--primary-light));
   border-radius: var(--radius-md);
   box-shadow: 0 4px 12px rgba(8, 145, 178, 0.3);
+}
+
+.logo-icon-img {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  box-shadow: 0 4px 12px rgba(8, 145, 178, 0.3);
+  flex-shrink: 0;
+}
+
+.mobile-logo-img {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  flex-shrink: 0;
 }
 
 .logo-text {
@@ -261,6 +282,8 @@ body {
   overflow-x: hidden;
   padding: 32px 40px;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  transform: translateZ(0);
 }
 
 /* ==================== VIEWS ==================== */
@@ -271,8 +294,8 @@ body {
 .view.active { display: block; }
 
 @keyframes fadeSlideIn {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translate3d(0, 12px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 
 .view-header {
@@ -398,6 +421,7 @@ body {
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border);
   transition: all var(--transition-base);
+  transform: translateZ(0);
 }
 .stat-card:hover {
   box-shadow: var(--shadow-md);
@@ -458,6 +482,7 @@ body {
   position: relative;
   overflow: hidden;
   -webkit-tap-highlight-color: transparent;
+  transform: translateZ(0);
 }
 
 .record-card::before {
@@ -1127,7 +1152,7 @@ body {
   z-index: 500;
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  animation: modalFadeIn 0.25s ease;
+  animation: modalFadeIn 0.2s ease;
 }
 
 @keyframes modalFadeIn {
@@ -1143,7 +1168,7 @@ body {
   width: 90%;
   text-align: center;
   box-shadow: var(--shadow-xl);
-  animation: modalSlideIn 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: modalSlideIn 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @keyframes modalSlideIn {
@@ -1424,6 +1449,42 @@ body {
   .pdf-action-btn {
     flex: 1;
     max-width: 60px;
+  }
+
+  /* iOS perf: reduce expensive effects on mobile */
+  .record-card:hover {
+    transform: none;
+    box-shadow: var(--shadow-sm);
+  }
+  .stat-card:hover {
+    transform: none;
+  }
+  .modal-overlay {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: rgba(0, 0, 0, 0.7);
+  }
+  #sidebar-overlay {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: rgba(0, 0, 0, 0.6);
+  }
+  .lightbox-close,
+  .lightbox-nav {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: rgba(0, 0, 0, 0.5);
+  }
+  .lightbox-counter {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: rgba(0, 0, 0, 0.55);
+  }
+  .view {
+    animation: none;
+  }
+  .view.active {
+    animation: none;
   }
 }
 

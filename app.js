@@ -307,14 +307,14 @@ function renderRecordsList() {
 
   if (currentFilter !== 'all') {
     filtered = filtered.filter(r =>
-      r.treatmentType.toLowerCase().includes(currentFilter.toLowerCase())
+      (r.treatmentType || r.diagnosis || '').toLowerCase().includes(currentFilter.toLowerCase())
     );
   }
 
   if (searchTerm) {
     filtered = filtered.filter(r =>
       r.patientName.toLowerCase().includes(searchTerm) ||
-      r.treatmentType.toLowerCase().includes(searchTerm) ||
+      (r.treatmentType || '').toLowerCase().includes(searchTerm) ||
       (r.chiefComplaint && r.chiefComplaint.toLowerCase().includes(searchTerm))
     );
   }
@@ -344,17 +344,17 @@ function renderRecordCard(record) {
     <div class="record-card" data-id="${record.id}">
       <div class="record-card-header">
         <span class="record-patient-name">${escapeHtml(record.patientName)}</span>
-        <span class="record-badge">${escapeHtml(record.treatmentType)}</span>
+        <span class="record-badge">${escapeHtml(record.treatmentType || '')}</span>
       </div>
       <div class="record-details">
         <div class="record-detail-row">
           <span class="record-detail-icon">👤</span>
           <span>${record.age} yrs · ${record.gender}</span>
         </div>
-        <div class="record-detail-row">
+        ${record.phone ? `<div class="record-detail-row">
           <span class="record-detail-icon">📞</span>
           <span>${escapeHtml(record.phone)}</span>
-        </div>
+        </div>` : ''}
         ${record.toothArea ? `
         <div class="record-detail-row">
           <span class="record-detail-icon">🦷</span>
@@ -413,7 +413,7 @@ async function showRecordDetail(id) {
             <h2>${escapeHtml(record.patientName)}</h2>
             <div class="detail-patient-meta">
               <span>${record.age} years · ${record.gender}</span>
-              <span>📞 ${escapeHtml(record.phone)}</span>
+              ${record.phone ? `<span>📞 ${escapeHtml(record.phone)}</span>` : ''}
               ${record.email ? `<span>📧 ${escapeHtml(record.email)}</span>` : ''}
             </div>
           </div>
@@ -421,11 +421,11 @@ async function showRecordDetail(id) {
       </div>
 
       <div class="detail-card">
-        <div class="detail-section-title">🦷 Treatment Details</div>
+        <div class="detail-section-title">🩺 Diagnosis Details</div>
         <div class="detail-grid">
           <div class="detail-field">
-            <span class="detail-field-label">Treatment Type</span>
-            <span class="detail-field-value">${escapeHtml(record.treatmentType)}</span>
+            <span class="detail-field-label">Diagnosis</span>
+            <span class="detail-field-value">${escapeHtml(record.treatmentType || '')}</span>
           </div>
           <div class="detail-field">
             <span class="detail-field-label">Treatment Date</span>
@@ -566,8 +566,7 @@ function validateForm() {
     { id: 'patient-name', errorId: 'error-name', msg: 'Patient name is required', check: v => !v.trim() },
     { id: 'patient-age', errorId: 'error-age', msg: 'Enter a valid age (1-120)', check: v => !v || v < 1 || v > 120 },
     { id: 'patient-gender', errorId: 'error-gender', msg: 'Please select gender', check: v => !v },
-    { id: 'patient-phone', errorId: 'error-phone', msg: 'Phone number is required', check: v => !v.trim() },
-    { id: 'treatment-type', errorId: 'error-treatment', msg: 'Please enter treatment type', check: v => !v.trim() },
+    { id: 'treatment-type', errorId: 'error-treatment', msg: 'Please enter diagnosis', check: v => !v.trim() },
     { id: 'treatment-date', errorId: 'error-date', msg: 'Treatment date is required', check: v => !v },
   ];
 
@@ -669,7 +668,7 @@ function buildPDF(record) {
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(22);
   doc.setFont('helvetica', 'bold');
-  doc.text('DentaRecord', margin, 18);
+  doc.text("Nia's Lab", margin, 18);
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   doc.text('Patient Record', margin, 26);
@@ -719,7 +718,7 @@ function buildPDF(record) {
   y += 8;
 
   const treatmentFields = [
-    ['Treatment', record.treatmentType],
+    ['Diagnosis', record.treatmentType],
     ['Date', formatDate(record.treatmentDate)],
   ];
   if (record.toothArea) treatmentFields.push(['Tooth/Area', record.toothArea]);
@@ -798,7 +797,7 @@ function buildPDF(record) {
     doc.setPage(i);
     doc.setFontSize(8);
     doc.setTextColor(...mutedColor);
-    doc.text(`Page ${i} of ${totalPages} · DentaRecord`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+    doc.text(`Page ${i} of ${totalPages} · Nia's Lab`, pageWidth / 2, pageHeight - 10, { align: 'center' });
   }
 
   return doc;
@@ -883,7 +882,7 @@ function renderPdfCard(pdf) {
         <div class="pdf-name" title="${escapeHtml(pdf.name)}.pdf">${escapeHtml(pdf.name)}.pdf</div>
         <div class="pdf-meta">
           <span>👤 ${escapeHtml(pdf.patientName)}</span>
-          <span>🦷 ${escapeHtml(pdf.treatmentType)}</span>
+          <span>🩺 ${escapeHtml(pdf.treatmentType)}</span>
           <span>📅 ${dateFormatted}</span>
           <span>📦 ${sizeFormatted}</span>
           <span>🕐 ${timeAgo}</span>
@@ -955,9 +954,9 @@ async function sharePdf(id) {
       const subject = encodeURIComponent(`Patient Record: ${pdf.patientName} - ${pdf.treatmentType}`);
       const body = encodeURIComponent(
         `Patient Record for ${pdf.patientName}\n` +
-        `Treatment: ${pdf.treatmentType}\n` +
+        `Diagnosis: ${pdf.treatmentType}\n` +
         `Date: ${formatDate(pdf.treatmentDate)}\n\n` +
-        `Please find the PDF attached.\n\n- Sent via DentaRecord`
+        `Please find the PDF attached.\n\n- Sent via Nia's Lab`
       );
       window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
       showToast('PDF downloaded — attach it to the email', 'info');
@@ -1243,7 +1242,7 @@ async function exportAllData() {
 
     const exportData = {
       version: 2,
-      appName: 'DentaRecord',
+      appName: 'NiasLab',
       exportDate: new Date().toISOString(),
       recordCount: records.length,
       pdfCount: pdfsForExport.length,
@@ -1254,7 +1253,7 @@ async function exportAllData() {
     const json = JSON.stringify(exportData);
     const blob = new Blob([json], { type: 'application/json' });
     const dateStr = new Date().toISOString().split('T')[0];
-    const filename = `DentaRecord_Backup_${dateStr}.json`;
+    const filename = `NiasLab_Backup_${dateStr}.json`;
 
     downloadBlob(blob, filename);
     localStorage.setItem('lastExportDate', Date.now().toString());
@@ -1300,8 +1299,8 @@ function handleImportFileSelect(file) {
     try {
       const data = JSON.parse(e.target.result);
 
-      if (!data.appName || data.appName !== 'DentaRecord' || !data.records) {
-        showToast('Invalid backup file — not a DentaRecord backup', 'error');
+      if (!data.appName || (data.appName !== 'NiasLab' && data.appName !== 'DentaRecord') || !data.records) {
+        showToast('Invalid backup file — not a valid backup', 'error');
         return;
       }
 
@@ -1418,7 +1417,7 @@ function updateGDriveUI() {
 
 function connectGoogleDrive() {
   if (GOOGLE_CLIENT_ID === 'YOUR_CLIENT_ID_HERE.apps.googleusercontent.com') {
-    showToast('Google Drive not configured yet — ask your developer to add the Client ID', 'error');
+    showToast('Google Drive not configured yet — contact support to add the Client ID', 'error');
     return;
   }
 
@@ -1513,7 +1512,7 @@ async function backupToGoogleDrive() {
 
     const exportData = {
       version: 2,
-      appName: 'DentaRecord',
+      appName: 'NiasLab',
       exportDate: new Date().toISOString(),
       recordCount: records.length,
       pdfCount: pdfsForExport.length,
@@ -1532,7 +1531,7 @@ async function backupToGoogleDrive() {
       await updateDriveFile(existingFileId, blob);
     } else {
       // Create new file
-      await createDriveFile('DentaRecord_Backup.json', blob);
+      await createDriveFile('NiasLab_Backup.json', blob);
     }
 
     localStorage.setItem('gdriveLastBackup', Date.now().toString());
@@ -1602,7 +1601,7 @@ async function restoreFromGoogleDrive() {
 
     const data = await res.json();
 
-    if (!data.appName || data.appName !== 'DentaRecord' || !data.records) {
+    if (!data.appName || (data.appName !== 'NiasLab' && data.appName !== 'DentaRecord') || !data.records) {
       showToast('Invalid backup file on Google Drive', 'error');
       return;
     }
@@ -1636,7 +1635,7 @@ async function restoreFromGoogleDrive() {
 
 async function findDriveBackupFile() {
   const res = await fetch(
-    `https://www.googleapis.com/drive/v3/files?q=name='DentaRecord_Backup.json' and trashed=false&spaces=drive&fields=files(id,name,modifiedTime)`,
+    `https://www.googleapis.com/drive/v3/files?q=(name='NiasLab_Backup.json' or name='DentaRecord_Backup.json') and trashed=false&spaces=drive&fields=files(id,name,modifiedTime)`,
     { headers: { 'Authorization': `Bearer ${gdriveAccessToken}` } }
   );
 
@@ -1692,7 +1691,7 @@ function registerServiceWorker() {
 document.addEventListener('DOMContentLoaded', async () => {
   try {
     await openDatabase();
-    console.log('DentaRecord database initialized');
+    console.log('Nia\'s Lab database initialized');
   } catch (err) {
     console.error('Failed to open database:', err);
     showToast('Failed to initialize database', 'error');

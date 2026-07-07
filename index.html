@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>DentaRecord — Patient Records</title>
-  <meta name="description" content="Simple and elegant dental patient record management with photo uploads and PDF export.">
+  <title>Nia's Lab — Patient Records</title>
+  <meta name="description" content="Simple and elegant patient record management with photo uploads and PDF export — Nia's Lab.">
   <meta name="theme-color" content="#0f172a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="DentaRecord">
+  <meta name="apple-mobile-web-app-title" content="Nia's Lab">
   <link rel="manifest" href="manifest.json">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦷</text></svg>">
+  <link rel="icon" type="image/png" href="icon-192.png">
   <link rel="apple-touch-icon" href="icon-192.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
@@ -23,8 +23,8 @@
     <aside id="sidebar">
       <div class="sidebar-header">
         <div class="logo">
-          <span class="logo-icon">🦷</span>
-          <span class="logo-text">DentaRecord</span>
+          <img src="icon-192.png" alt="Nia's Lab" class="logo-icon-img">
+          <span class="logo-text">Nia's Lab</span>
         </div>
       </div>
       <nav class="sidebar-nav">
@@ -61,8 +61,8 @@
     <header id="mobile-header">
       <button id="mobile-menu-btn" class="icon-btn" aria-label="Toggle menu">☰</button>
       <div class="mobile-logo">
-        <span>🦷</span>
-        <span>DentaRecord</span>
+        <img src="icon-192.png" alt="Nia's Lab" class="mobile-logo-img">
+        <span>Nia's Lab</span>
       </div>
       <div style="width:40px"></div>
     </header>
@@ -114,7 +114,7 @@
         </div>
         <div id="recent-records" class="records-grid"></div>
         <div id="dashboard-empty" class="empty-state" style="display:none;">
-          <div class="empty-icon">🦷</div>
+          <div class="empty-icon">🔬</div>
           <h3>No records yet</h3>
           <p>Start by adding your first patient record</p>
           <button class="btn btn-primary" id="empty-new-btn">➕ Add First Record</button>
@@ -126,7 +126,7 @@
         <div class="view-header">
           <div>
             <h1>New Patient Record</h1>
-            <p class="view-subtitle">Fill in the patient and treatment details</p>
+            <p class="view-subtitle">Fill in the patient and diagnosis details</p>
           </div>
         </div>
 
@@ -157,8 +157,8 @@
                 <span class="form-error" id="error-gender"></span>
               </div>
               <div class="form-group">
-                <label for="patient-phone">Phone Number <span class="required">*</span></label>
-                <input type="tel" id="patient-phone" name="phone" placeholder="e.g. 9876543210" required>
+                <label for="patient-phone">Phone Number <span class="text-muted">(optional)</span></label>
+                <input type="tel" id="patient-phone" name="phone" placeholder="e.g. 9876543210">
                 <span class="form-error" id="error-phone"></span>
               </div>
               <div class="form-group">
@@ -170,12 +170,12 @@
 
           <div class="form-section">
             <h3 class="form-section-title">
-              <span>🦷</span> Treatment Details
+              <span>🩺</span> Diagnosis Details
             </h3>
             <div class="form-grid">
               <div class="form-group">
-                <label for="treatment-type">Treatment Type <span class="required">*</span></label>
-                <input type="text" id="treatment-type" name="treatmentType" list="treatment-options" placeholder="Select or type treatment" required autocomplete="off">
+                <label for="treatment-type">Diagnosis <span class="required">*</span></label>
+                <input type="text" id="treatment-type" name="treatmentType" list="treatment-options" placeholder="Select or type diagnosis" required autocomplete="off">
                 <datalist id="treatment-options">
                   <option value="General Checkup"></option>
                   <option value="Cleaning & Polishing"></option>
@@ -251,7 +251,7 @@
           <div class="view-actions">
             <div class="search-box">
               <span class="search-icon">🔍</span>
-              <input type="text" id="search-input" placeholder="Search by name or treatment...">
+              <input type="text" id="search-input" placeholder="Search by name or diagnosis...">
             </div>
           </div>
         </div>
@@ -507,10 +507,10 @@
   <!-- iOS Install Banner -->
   <div id="ios-install-banner" class="ios-banner" style="display:none;">
     <div class="ios-banner-content">
-      <div class="ios-banner-icon">🦷</div>
-      <div class="ios-banner-text">
-        <strong>Install DentaRecord</strong>
-        <p>Tap <strong>Share</strong> <span class="ios-share-icon">⬆</span> then <strong>"Add to Home Screen"</strong></p>
+        <div class="ios-banner-icon">🔬</div>
+        <div class="ios-banner-text">
+          <strong>Install Nia's Lab</strong>
+          <p>Tap <strong>Share</strong> <span class="ios-share-icon">⬆</span> then <strong>"Add to Home Screen"</strong></p>
       </div>
       <button id="dismiss-install-banner" class="ios-banner-close" aria-label="Dismiss">✕</button>
     </div>
